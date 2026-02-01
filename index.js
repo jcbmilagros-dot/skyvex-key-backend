@@ -1,13 +1,12 @@
 //==================================================
-// SKYVEX HUB | GLOBAL KEY BACKEND (FINAL)
+// SKYVEX HUB | GLOBAL KEY BACKEND (FIXED)
 // - Tiempo global real por key
 // - Compartir key NO reinicia tiempo
 // - Logs a Discord
-// - Panel web admin
+// - Panel web admin FUNCIONAL
 //==================================================
 
 import express from "express";
-import fs from "fs";
 import fetch from "node-fetch";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -20,26 +19,17 @@ const app = express();
 app.use(express.json());
 
 // ================== CONFIG ==================
-const FILE = "SkyvexKey.json";
 const KEY_DURATION = 3600 * 1000; // 1 hora
 
-// 🔔 DISCORD WEBHOOK (SOLO AQUÍ)
 const DISCORD_WEBHOOK =
   "https://discord.com/api/webhooks/1467582702231228623/kz1P4OuPl7izmORfKT2WGjZ-yJU8c6Q9ts6PdcyqLVN46g0VpjUp0oN74V0cMK6qXIkB";
 
-// 🔐 TOKEN ADMIN (CAMBIA ESTO)
 const ADMIN_TOKEN = "skyvex_super_admin_CAMBIA_ESTO";
 
-// ================== DB UTILS ==================
-function loadDB() {
-  if (!fs.existsSync(FILE)) return {};
-  return JSON.parse(fs.readFileSync(FILE, "utf8"));
-}
+// ================== 🔥 IN-MEMORY DB 🔥 ==================
+const DB = {}; // <- AQUÍ SE GUARDAN LAS KEYS
 
-function saveDB(db) {
-  fs.writeFileSync(FILE, JSON.stringify(db, null, 2));
-}
-
+// ================== UTILS ==================
 function formatTime(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(s / 3600);
@@ -50,8 +40,6 @@ function formatTime(ms) {
 
 // ================== DISCORD LOG ==================
 async function logDiscord(title, fields = []) {
-  if (!DISCORD_WEBHOOK) return;
-
   try {
     await fetch(DISCORD_WEBHOOK, {
       method: "POST",
@@ -67,84 +55,69 @@ async function logDiscord(title, fields = []) {
         ],
       }),
     });
-  } catch (e) {
-    console.error("Discord log error:", e.message);
-  }
+  } catch {}
 }
 
-// ================== VERIFY KEY (ROBLOX) ==================
+// ================== VERIFY (ROBLOX) ==================
 app.post("/verify", async (req, res) => {
   const { key, user, userid } = req.body;
-  if (!key) return res.json({ ok: false, error: "no_key" });
+  if (!key) return res.json({ ok: false });
 
-  const db = loadDB();
   const now = Date.now();
 
-  // 🆕 PRIMER USO → ARRANCA RELOJ GLOBAL
-  if (!db[key]) {
-    db[key] = {
+  // 🔑 PRIMER USO → ARRANCA RELOJ GLOBAL
+  if (!DB[key]) {
+    DB[key] = {
       start: now,
       expires: now + KEY_DURATION,
       revoked: false,
       users: [],
     };
-    saveDB(db);
 
     await logDiscord("🔑 Key Activated", [
       { name: "Key", value: key },
       { name: "User", value: `${user} (${userid})` },
-      { name: "Expires In", value: formatTime(KEY_DURATION) },
+      { name: "Duration", value: "1 hour" },
     ]);
   }
 
-  const entry = db[key];
+  const entry = DB[key];
 
-  // ⛔ REVOCADA
-  if (entry.revoked) {
-    await logDiscord("⛔ Key Revoked Attempt", [
-      { name: "Key", value: key },
-      { name: "User", value: `${user} (${userid})` },
-    ]);
+  if (entry.revoked)
     return res.json({ ok: false, error: "revoked" });
-  }
 
-  // ⌛ EXPIRADA
   if (now >= entry.expires) {
-    await logDiscord("⌛ Key Expired", [{ name: "Key", value: key }]);
+    await logDiscord("⌛ Key Expired", [
+      { name: "Key", value: key },
+    ]);
     return res.json({ ok: false, error: "expired" });
   }
 
-  // ✅ USO NORMAL
   const remaining = entry.expires - now;
   entry.users.push({ user, userid, time: now });
-  saveDB(db);
 
   await logDiscord("📥 Key Used", [
     { name: "Key", value: key },
     { name: "User", value: `${user} (${userid})` },
-    { name: "Time Remaining", value: formatTime(remaining) },
+    { name: "Remaining", value: formatTime(remaining) },
   ]);
 
-  return res.json({
+  res.json({
     ok: true,
     remaining,
   });
 });
 
 // ================== ADMIN API ==================
-
-// 🔍 LISTAR KEYS
 app.get("/admin/keys", (req, res) => {
   if (req.query.token !== ADMIN_TOKEN)
-    return res.status(403).json({ error: "unauthorized" });
+    return res.status(403).json([]);
 
-  const db = loadDB();
   const now = Date.now();
 
-  const result = Object.entries(db).map(([key, data]) => ({
+  const result = Object.entries(DB).map(([key, data]) => ({
     key,
     revoked: data.revoked,
-    expires: data.expires,
     remaining: Math.max(0, data.expires - now),
     uses: data.users.length,
   }));
@@ -152,47 +125,42 @@ app.get("/admin/keys", (req, res) => {
   res.json(result);
 });
 
-// ⛔ REVOCAR KEY
 app.post("/admin/revoke", (req, res) => {
   const { key, token } = req.body;
-  if (token !== ADMIN_TOKEN)
-    return res.status(403).json({ error: "unauthorized" });
+  if (token !== ADMIN_TOKEN) return res.status(403).end();
 
-  const db = loadDB();
-  if (!db[key]) return res.json({ ok: false });
+  if (!DB[key]) return res.json({ ok: false });
 
-  db[key].revoked = true;
-  saveDB(db);
+  DB[key].revoked = true;
 
-  logDiscord("🛑 Key Revoked Manually", [{ name: "Key", value: key }]);
-  res.json({ ok: true });
-});
-
-// ➕ EXTENDER TIEMPO
-app.post("/admin/extend", (req, res) => {
-  const { key, ms, token } = req.body;
-  if (token !== ADMIN_TOKEN)
-    return res.status(403).json({ error: "unauthorized" });
-
-  const db = loadDB();
-  if (!db[key]) return res.json({ ok: false });
-
-  db[key].expires += ms;
-  saveDB(db);
-
-  logDiscord("⏱️ Key Extended", [
+  logDiscord("🛑 Key Revoked Manually", [
     { name: "Key", value: key },
-    { name: "Added Time", value: formatTime(ms) },
   ]);
 
   res.json({ ok: true });
 });
 
-// ================== ADMIN PANEL (WEB) ==================
+app.post("/admin/extend", (req, res) => {
+  const { key, ms, token } = req.body;
+  if (token !== ADMIN_TOKEN) return res.status(403).end();
+
+  if (!DB[key]) return res.json({ ok: false });
+
+  DB[key].expires += ms;
+
+  logDiscord("⏱️ Key Extended", [
+    { name: "Key", value: key },
+    { name: "Added", value: formatTime(ms) },
+  ]);
+
+  res.json({ ok: true });
+});
+
+// ================== ADMIN PANEL ==================
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
 // ================== ROOT ==================
-app.get("/", (req, res) => {
+app.get("/", (_, res) => {
   res.send("Skyvex Key Server running");
 });
 
