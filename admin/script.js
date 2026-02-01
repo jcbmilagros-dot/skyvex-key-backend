@@ -67,3 +67,4 @@ async function extendKey(key, ms) {
 
 // Inicial
 loadKeys();
+setInterval(loadKeys, 5000);
