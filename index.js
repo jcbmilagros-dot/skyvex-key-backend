@@ -4,6 +4,7 @@
 // - Compartir key NO reinicia tiempo
 // - Logs a Discord
 // - Panel web admin FUNCIONAL
+// - DELETE key permanente añadido
 //==================================================
 
 import express from "express";
@@ -22,7 +23,7 @@ app.use(express.json());
 const KEY_DURATION = 3600 * 1000; // 1 hora
 
 const DISCORD_WEBHOOK =
-  "https://discord.com/api/webhooks/1472726706459639970/brCiOzwTeopW2vfO2bUMS4P97chjP8TC9Oq3QTS7dkHEVdF77uxIuxwwJuHrR2uvdSN5";
+  "https://discord.com/api/webhooks/1467582702231228623/kz1P4OuPl7izmORfKT2WGjZ-yJU8c6Q9ts6PdcyqLVN46g0VpjUp0oN74V0cMK6qXIkB";
 
 const ADMIN_TOKEN = "skyvex_super_admin_CAMBIA_ESTO";
 
@@ -48,7 +49,7 @@ async function logDiscord(title, fields = []) {
         embeds: [
           {
             title,
-            color: 0x5865f2,
+            color: 0x8b5cf6, // morado
             fields,
             timestamp: new Date().toISOString(),
           },
@@ -151,6 +152,22 @@ app.post("/admin/extend", (req, res) => {
   logDiscord("⏱️ Key Extended", [
     { name: "Key", value: key },
     { name: "Added", value: formatTime(ms) },
+  ]);
+
+  res.json({ ok: true });
+});
+
+// 🗑 DELETE COMPLETO DE KEY
+app.post("/admin/delete", (req, res) => {
+  const { key, token } = req.body;
+  if (token !== ADMIN_TOKEN) return res.status(403).end();
+
+  if (!DB[key]) return res.json({ ok: false });
+
+  delete DB[key];
+
+  logDiscord("🗑️ Key Deleted Permanently", [
+    { name: "Key", value: key },
   ]);
 
   res.json({ ok: true });
