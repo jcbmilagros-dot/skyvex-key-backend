@@ -1,5 +1,9 @@
 //==================================================
-// CYPHERHUB | GLOBAL KEY BACKEND + DISCORD LOGS
+// SKYVEX HUB | GLOBAL KEY BACKEND (FIXED)
+// - Tiempo global real por key
+// - Compartir key NO reinicia tiempo
+// - Logs a Discord
+// - Panel web admin FUNCIONAL
 //==================================================
 
 import express from "express";
@@ -17,12 +21,13 @@ app.use(express.json());
 // ================== CONFIG ==================
 const KEY_DURATION = 3600 * 1000; // 1 hora
 
-const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1472726706459639970/brCiOzwTeopW2vfO2bUMS4P97chjP8TC9Oq3QTS7dkHEVdF77uxIuxwwJuHrR2uvdSN5";
+const DISCORD_WEBHOOK =
+  "https://discord.com/api/webhooks/1467582702231228623/kz1P4OuPl7izmORfKT2WGjZ-yJU8c6Q9ts6PdcyqLVN46g0VpjUp0oN74V0cMK6qXIkB";
 
-const ADMIN_TOKEN = "cypherhub_super_admin_CAMBIA_ESTO";
+const ADMIN_TOKEN = "skyvex_super_admin_CAMBIA_ESTO";
 
-// ================== IN-MEMORY DB ==================
-const DB = {};
+// ================== 🔥 IN-MEMORY DB 🔥 ==================
+const DB = {}; // <- AQUÍ SE GUARDAN LAS KEYS
 
 // ================== UTILS ==================
 function formatTime(ms) {
@@ -50,19 +55,17 @@ async function logDiscord(title, fields = []) {
         ],
       }),
     });
-  } catch (err) {
-    console.error("Webhook error:", err);
-  }
+  } catch {}
 }
 
-// ================== VERIFY ==================
+// ================== VERIFY (ROBLOX) ==================
 app.post("/verify", async (req, res) => {
   const { key, user, userid } = req.body;
   if (!key) return res.json({ ok: false });
 
   const now = Date.now();
 
-  // Activación
+  // 🔑 PRIMER USO → ARRANCA RELOJ GLOBAL
   if (!DB[key]) {
     DB[key] = {
       start: now,
@@ -71,7 +74,7 @@ app.post("/verify", async (req, res) => {
       users: [],
     };
 
-    await logDiscord("🔑 Cypherhub Key Activated", [
+    await logDiscord("🔑 Key Activated", [
       { name: "Key", value: key },
       { name: "User", value: `${user} (${userid})` },
       { name: "Duration", value: "1 hour" },
@@ -80,38 +83,32 @@ app.post("/verify", async (req, res) => {
 
   const entry = DB[key];
 
-  if (entry.revoked) {
-    await logDiscord("🛑 Attempted Use of Revoked Key", [
-      { name: "Key", value: key },
-      { name: "User", value: `${user} (${userid})` },
-    ]);
+  if (entry.revoked)
     return res.json({ ok: false, error: "revoked" });
-  }
 
   if (now >= entry.expires) {
-    await logDiscord("⌛ Cypherhub Key Expired Attempt", [
+    await logDiscord("⌛ Key Expired", [
       { name: "Key", value: key },
-      { name: "User", value: `${user} (${userid})` },
     ]);
     return res.json({ ok: false, error: "expired" });
   }
 
+  const remaining = entry.expires - now;
   entry.users.push({ user, userid, time: now });
 
-  await logDiscord("📥 Cypherhub Key Used", [
+  await logDiscord("📥 Key Used", [
     { name: "Key", value: key },
     { name: "User", value: `${user} (${userid})` },
-    { name: "Remaining", value: formatTime(entry.expires - now) },
+    { name: "Remaining", value: formatTime(remaining) },
   ]);
 
   res.json({
     ok: true,
-    remaining: entry.expires - now,
+    remaining,
   });
 });
 
-// ================== ADMIN ==================
-
+// ================== ADMIN API ==================
 app.get("/admin/keys", (req, res) => {
   if (req.query.token !== ADMIN_TOKEN)
     return res.status(403).json([]);
@@ -128,79 +125,47 @@ app.get("/admin/keys", (req, res) => {
   res.json(result);
 });
 
-// REVOCAR
-app.post("/admin/revoke", async (req, res) => {
+app.post("/admin/revoke", (req, res) => {
   const { key, token } = req.body;
   if (token !== ADMIN_TOKEN) return res.status(403).end();
 
-  if (DB[key]) {
-    DB[key].revoked = true;
+  if (!DB[key]) return res.json({ ok: false });
 
-    await logDiscord("🛑 Cypherhub Key Revoked", [
-      { name: "Key", value: key },
-    ]);
-  }
+  DB[key].revoked = true;
 
-  res.json({ ok: true });
-});
-
-// EXTENDER
-app.post("/admin/extend", async (req, res) => {
-  const { key, ms, token } = req.body;
-  if (token !== ADMIN_TOKEN) return res.status(403).end();
-
-  if (DB[key]) {
-    DB[key].expires += ms;
-
-    await logDiscord("⏱ Cypherhub Key Extended", [
-      { name: "Key", value: key },
-      { name: "Added Time", value: formatTime(ms) },
-    ]);
-  }
-
-  res.json({ ok: true });
-});
-
-// DELETE INDIVIDUAL
-app.post("/admin/delete", async (req, res) => {
-  const { key, token } = req.body;
-  if (token !== ADMIN_TOKEN) return res.status(403).end();
-
-  if (DB[key]) {
-    delete DB[key];
-
-    await logDiscord("🗑️ Cypherhub Key Deleted", [
-      { name: "Key", value: key },
-    ]);
-  }
-
-  res.json({ ok: true });
-});
-
-// DELETE ALL
-app.post("/admin/delete-all", async (req, res) => {
-  const { token } = req.body;
-  if (token !== ADMIN_TOKEN) return res.status(403).end();
-
-  const total = Object.keys(DB).length;
-  Object.keys(DB).forEach(k => delete DB[k]);
-
-  await logDiscord("💣 Cypherhub ALL Keys Deleted", [
-    { name: "Total Deleted", value: total.toString() },
+  logDiscord("🛑 Key Revoked Manually", [
+    { name: "Key", value: key },
   ]);
 
   res.json({ ok: true });
 });
 
-// ================== PANEL ==================
+app.post("/admin/extend", (req, res) => {
+  const { key, ms, token } = req.body;
+  if (token !== ADMIN_TOKEN) return res.status(403).end();
+
+  if (!DB[key]) return res.json({ ok: false });
+
+  DB[key].expires += ms;
+
+  logDiscord("⏱️ Key Extended", [
+    { name: "Key", value: key },
+    { name: "Added", value: formatTime(ms) },
+  ]);
+
+  res.json({ ok: true });
+});
+
+// ================== ADMIN PANEL ==================
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
+// ================== ROOT ==================
 app.get("/", (_, res) => {
-  res.send("Cypherhub Key Server running");
+  res.send("Skyvex Key Server running");
 });
 
 // ================== START ==================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Cypherhub Server running on port", PORT);
+  console.log("Skyvex Key Server running on port", PORT);
 });
