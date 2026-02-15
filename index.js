@@ -108,6 +108,7 @@ app.post("/verify", async (req, res) => {
 });
 
 // ================== ADMIN API ==================
+
 app.get("/admin/keys", (req, res) => {
   if (req.query.token !== ADMIN_TOKEN)
     return res.status(403).json([]);
@@ -150,6 +151,22 @@ app.post("/admin/extend", (req, res) => {
   logDiscord("⏱️ Cypherhub Key Extended", [
     { name: "Key", value: key },
     { name: "Added", value: formatTime(ms) },
+  ]);
+
+  res.json({ ok: true });
+});
+
+// ================== DELETE KEY ==================
+app.post("/admin/delete", (req, res) => {
+  const { key, token } = req.body;
+  if (token !== ADMIN_TOKEN) return res.status(403).end();
+
+  if (!DB[key]) return res.json({ ok: false });
+
+  delete DB[key];
+
+  logDiscord("🗑️ Cypherhub Key Deleted", [
+    { name: "Key", value: key },
   ]);
 
   res.json({ ok: true });
