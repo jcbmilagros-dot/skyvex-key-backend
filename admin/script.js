@@ -1,6 +1,3 @@
-// ================= ADMIN PANEL SCRIPT =================
-
-// Leer token de la URL
 const params = new URLSearchParams(window.location.search);
 const token = params.get("token");
 
@@ -9,43 +6,52 @@ if (!token) {
   throw new Error("No admin token");
 }
 
-// Base correcta para el backend
 const API_BASE = "/admin";
 
-// Cargar keys
 async function loadKeys() {
   const res = await fetch(`${API_BASE}/keys?token=${token}`);
-  if (!res.ok) {
-    console.error("Failed to load keys");
-    return;
-  }
-
   const keys = await res.json();
-  const tbody = document.querySelector("#keys tbody");
+
+  const tbody = document.getElementById("keysBody");
   tbody.innerHTML = "";
 
+  let active = 0;
+  let revoked = 0;
+
   keys.forEach(k => {
+    const tr = document.createElement("tr");
+
     const sec = Math.floor(k.remaining / 1000);
     const min = Math.floor(sec / 60);
     const s = sec % 60;
 
-    const tr = document.createElement("tr");
+    const statusText = k.revoked
+      ? "Revoked"
+      : (k.remaining <= 0 ? "Expired" : "Active");
+
+    if (statusText === "Active") active++;
+    if (statusText === "Revoked") revoked++;
+
     tr.innerHTML = `
       <td>${k.key}</td>
       <td>${min}m ${s}s</td>
-      <td>${k.revoked ? "Revoked" : "Active"}</td>
+      <td class="status-${statusText.toLowerCase()}">${statusText}</td>
       <td>${k.uses}</td>
       <td>
-        <button class="red" onclick="revokeKey('${k.key}')">Revoke</button>
-        <button onclick="extendKey('${k.key}', 600000)">+10m</button>
-        <button onclick="extendKey('${k.key}', 3600000)">+1h</button>
+        <button class="btn-revoke" onclick="revokeKey('${k.key}')">Revoke</button>
+        <button class="btn-extend" onclick="extendKey('${k.key}', 600000)">+10m</button>
+        <button class="btn-delete" onclick="deleteKey('${k.key}')">Delete</button>
       </td>
     `;
+
     tbody.appendChild(tr);
   });
+
+  document.getElementById("totalKeys").textContent = keys.length;
+  document.getElementById("activeKeys").textContent = active;
+  document.getElementById("revokedKeys").textContent = revoked;
 }
 
-// Revocar key
 async function revokeKey(key) {
   await fetch(`${API_BASE}/revoke`, {
     method: "POST",
@@ -55,7 +61,6 @@ async function revokeKey(key) {
   loadKeys();
 }
 
-// Extender tiempo
 async function extendKey(key, ms) {
   await fetch(`${API_BASE}/extend`, {
     method: "POST",
@@ -65,6 +70,18 @@ async function extendKey(key, ms) {
   loadKeys();
 }
 
-// Inicial
+async function deleteKey(key) {
+  if (!confirm("Are you sure you want to DELETE this key permanently?"))
+    return;
+
+  await fetch(`${API_BASE}/delete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, token })
+  });
+
+  loadKeys();
+}
+
 loadKeys();
 setInterval(loadKeys, 5000);
