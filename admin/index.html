@@ -2,24 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Cypherhub Admin Panel</title>
+  <title>Cypherhub Admin</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Cypherhub Key Admin</h1>
 
-  <table id="keys">
-    <thead>
-      <tr>
-        <th>Key</th>
-        <th>Remaining</th>
-        <th>Status</th>
-        <th>Uses</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="container">
+    <h1>⚡ Cypherhub Admin Panel</h1>
+
+    <div class="controls">
+      <button onclick="filterKeys('all')">All</button>
+      <button onclick="filterKeys('active')">Active</button>
+      <button onclick="filterKeys('revoked')">Revoked</button>
+      <button onclick="filterKeys('expired')">Expired</button>
+      <button class="danger" onclick="clearExpired()">Clear Expired</button>
+    </div>
+
+    <div class="stats">
+      <div class="card">
+        <h3>Total Keys</h3>
+        <p id="totalKeys">0</p>
+      </div>
+      <div class="card">
+        <h3>Active</h3>
+        <p id="activeKeys">0</p>
+      </div>
+      <div class="card">
+        <h3>Revoked</h3>
+        <p id="revokedKeys">0</p>
+      </div>
+    </div>
+
+    <table id="keys">
+      <thead>
+        <tr>
+          <th>Key</th>
+          <th>Remaining</th>
+          <th>Status</th>
+          <th>Uses</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+  </div>
 
   <script src="script.js"></script>
 </body>
