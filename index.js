@@ -1,12 +1,9 @@
 //==================================================
-// CYPHERHUB | GLOBAL KEY BACKEND
-// - Tiempo global real por key
-// - Compartir key NO reinicia tiempo
-// - Logs a Discord
-// - Panel web admin funcional
+// CYPHERHUB | GLOBAL KEY BACKEND (ENHANCED)
 //==================================================
 
 import express from "express";
+import fetch from "node-fetch";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -21,7 +18,7 @@ app.use(express.json());
 const KEY_DURATION = 3600 * 1000; // 1 hora
 
 const DISCORD_WEBHOOK =
-  "https://discord.com/api/webhooks/1472726706459639970/brCiOzwTeopW2vfO2bUMS4P97chjP8TC9Oq3QTS7dkHEVdF77uxIuxwwJuHrR2uvdSN5";
+  "PON_AQUI_TU_WEBHOOK";
 
 const ADMIN_TOKEN = "cypherhub_super_admin_CAMBIA_ESTO";
 
@@ -37,26 +34,6 @@ function formatTime(ms) {
   return `${h}h ${m}m ${sec}s`;
 }
 
-// ================== DISCORD LOG ==================
-async function logDiscord(title, fields = []) {
-  try {
-    await fetch(DISCORD_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        embeds: [
-          {
-            title,
-            color: 0x5865f2,
-            fields,
-            timestamp: new Date().toISOString(),
-          },
-        ],
-      }),
-    });
-  } catch {}
-}
-
 // ================== VERIFY ==================
 app.post("/verify", async (req, res) => {
   const { key, user, userid } = req.body;
@@ -64,7 +41,6 @@ app.post("/verify", async (req, res) => {
 
   const now = Date.now();
 
-  // PRIMER USO → ARRANCA RELOJ GLOBAL
   if (!DB[key]) {
     DB[key] = {
       start: now,
@@ -72,12 +48,6 @@ app.post("/verify", async (req, res) => {
       revoked: false,
       users: [],
     };
-
-    await logDiscord("🔑 Cypherhub Key Activated", [
-      { name: "Key", value: key },
-      { name: "User", value: `${user} (${userid})` },
-      { name: "Duration", value: "1 hour" },
-    ]);
   }
 
   const entry = DB[key];
@@ -85,30 +55,18 @@ app.post("/verify", async (req, res) => {
   if (entry.revoked)
     return res.json({ ok: false, error: "revoked" });
 
-  if (now >= entry.expires) {
-    await logDiscord("⌛ Cypherhub Key Expired", [
-      { name: "Key", value: key },
-    ]);
+  if (now >= entry.expires)
     return res.json({ ok: false, error: "expired" });
-  }
 
-  const remaining = entry.expires - now;
   entry.users.push({ user, userid, time: now });
-
-  await logDiscord("📥 Cypherhub Key Used", [
-    { name: "Key", value: key },
-    { name: "User", value: `${user} (${userid})` },
-    { name: "Remaining", value: formatTime(remaining) },
-  ]);
 
   res.json({
     ok: true,
-    remaining,
+    remaining: entry.expires - now,
   });
 });
 
-// ================== ADMIN API ==================
-
+// ================== ADMIN ==================
 app.get("/admin/keys", (req, res) => {
   if (req.query.token !== ADMIN_TOKEN)
     return res.status(403).json([]);
@@ -128,60 +86,39 @@ app.get("/admin/keys", (req, res) => {
 app.post("/admin/revoke", (req, res) => {
   const { key, token } = req.body;
   if (token !== ADMIN_TOKEN) return res.status(403).end();
-
-  if (!DB[key]) return res.json({ ok: false });
-
-  DB[key].revoked = true;
-
-  logDiscord("🛑 Cypherhub Key Revoked Manually", [
-    { name: "Key", value: key },
-  ]);
-
+  if (DB[key]) DB[key].revoked = true;
   res.json({ ok: true });
 });
 
 app.post("/admin/extend", (req, res) => {
   const { key, ms, token } = req.body;
   if (token !== ADMIN_TOKEN) return res.status(403).end();
-
-  if (!DB[key]) return res.json({ ok: false });
-
-  DB[key].expires += ms;
-
-  logDiscord("⏱️ Cypherhub Key Extended", [
-    { name: "Key", value: key },
-    { name: "Added", value: formatTime(ms) },
-  ]);
-
+  if (DB[key]) DB[key].expires += ms;
   res.json({ ok: true });
 });
 
-// ================== DELETE KEY ==================
 app.post("/admin/delete", (req, res) => {
   const { key, token } = req.body;
   if (token !== ADMIN_TOKEN) return res.status(403).end();
-
-  if (!DB[key]) return res.json({ ok: false });
-
   delete DB[key];
-
-  logDiscord("🗑️ Cypherhub Key Deleted", [
-    { name: "Key", value: key },
-  ]);
-
   res.json({ ok: true });
 });
 
-// ================== ADMIN PANEL ==================
+app.post("/admin/delete-all", (req, res) => {
+  const { token } = req.body;
+  if (token !== ADMIN_TOKEN) return res.status(403).end();
+  Object.keys(DB).forEach(k => delete DB[k]);
+  res.json({ ok: true });
+});
+
+// ================== PANEL ==================
 app.use("/admin", express.static(path.join(__dirname, "admin")));
 
-// ================== ROOT ==================
 app.get("/", (_, res) => {
   res.send("Cypherhub Key Server running");
 });
 
-// ================== START ==================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Cypherhub Key Server running on port", PORT);
+  console.log("Cypherhub Server running on port", PORT);
 });
