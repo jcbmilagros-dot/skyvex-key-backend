@@ -1,6 +1,3 @@
-// ================= ADMIN PANEL SCRIPT =================
-
-// Leer token de la URL
 const params = new URLSearchParams(window.location.search);
 const token = params.get("token");
 
@@ -9,16 +6,11 @@ if (!token) {
   throw new Error("No admin token");
 }
 
-// Base correcta para el backend
 const API_BASE = "/admin";
 
-// Cargar keys
 async function loadKeys() {
   const res = await fetch(`${API_BASE}/keys?token=${token}`);
-  if (!res.ok) {
-    console.error("Failed to load keys");
-    return;
-  }
+  if (!res.ok) return;
 
   const keys = await res.json();
   const tbody = document.querySelector("#keys tbody");
@@ -45,7 +37,6 @@ async function loadKeys() {
   });
 }
 
-// Revocar key
 async function revokeKey(key) {
   await fetch(`${API_BASE}/revoke`, {
     method: "POST",
@@ -55,7 +46,6 @@ async function revokeKey(key) {
   loadKeys();
 }
 
-// Extender tiempo
 async function extendKey(key, ms) {
   await fetch(`${API_BASE}/extend`, {
     method: "POST",
@@ -65,6 +55,5 @@ async function extendKey(key, ms) {
   loadKeys();
 }
 
-// Inicial
 loadKeys();
 setInterval(loadKeys, 5000);
