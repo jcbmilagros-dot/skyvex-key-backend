@@ -1,13 +1,12 @@
 //==================================================
-// SKYVEX HUB | GLOBAL KEY BACKEND (FIXED)
+// CYPHERHUB | GLOBAL KEY BACKEND
 // - Tiempo global real por key
 // - Compartir key NO reinicia tiempo
 // - Logs a Discord
-// - Panel web admin FUNCIONAL
+// - Panel web admin funcional
 //==================================================
 
 import express from "express";
-import fetch from "node-fetch";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -22,12 +21,12 @@ app.use(express.json());
 const KEY_DURATION = 3600 * 1000; // 1 hora
 
 const DISCORD_WEBHOOK =
-  "https://discord.com/api/webhooks/1467582702231228623/kz1P4OuPl7izmORfKT2WGjZ-yJU8c6Q9ts6PdcyqLVN46g0VpjUp0oN74V0cMK6qXIkB";
+  "https://discord.com/api/webhooks/1472726706459639970/brCiOzwTeopW2vfO2bUMS4P97chjP8TC9Oq3QTS7dkHEVdF77uxIuxwwJuHrR2uvdSN5";
 
-const ADMIN_TOKEN = "skyvex_super_admin_CAMBIA_ESTO";
+const ADMIN_TOKEN = "cypherhub_super_admin_CAMBIA_ESTO";
 
-// ================== 🔥 IN-MEMORY DB 🔥 ==================
-const DB = {}; // <- AQUÍ SE GUARDAN LAS KEYS
+// ================== IN-MEMORY DB ==================
+const DB = {};
 
 // ================== UTILS ==================
 function formatTime(ms) {
@@ -58,14 +57,14 @@ async function logDiscord(title, fields = []) {
   } catch {}
 }
 
-// ================== VERIFY (ROBLOX) ==================
+// ================== VERIFY ==================
 app.post("/verify", async (req, res) => {
   const { key, user, userid } = req.body;
   if (!key) return res.json({ ok: false });
 
   const now = Date.now();
 
-  // 🔑 PRIMER USO → ARRANCA RELOJ GLOBAL
+  // PRIMER USO → ARRANCA RELOJ GLOBAL
   if (!DB[key]) {
     DB[key] = {
       start: now,
@@ -74,7 +73,7 @@ app.post("/verify", async (req, res) => {
       users: [],
     };
 
-    await logDiscord("🔑 Key Activated", [
+    await logDiscord("🔑 Cypherhub Key Activated", [
       { name: "Key", value: key },
       { name: "User", value: `${user} (${userid})` },
       { name: "Duration", value: "1 hour" },
@@ -87,7 +86,7 @@ app.post("/verify", async (req, res) => {
     return res.json({ ok: false, error: "revoked" });
 
   if (now >= entry.expires) {
-    await logDiscord("⌛ Key Expired", [
+    await logDiscord("⌛ Cypherhub Key Expired", [
       { name: "Key", value: key },
     ]);
     return res.json({ ok: false, error: "expired" });
@@ -96,7 +95,7 @@ app.post("/verify", async (req, res) => {
   const remaining = entry.expires - now;
   entry.users.push({ user, userid, time: now });
 
-  await logDiscord("📥 Key Used", [
+  await logDiscord("📥 Cypherhub Key Used", [
     { name: "Key", value: key },
     { name: "User", value: `${user} (${userid})` },
     { name: "Remaining", value: formatTime(remaining) },
@@ -133,7 +132,7 @@ app.post("/admin/revoke", (req, res) => {
 
   DB[key].revoked = true;
 
-  logDiscord("🛑 Key Revoked Manually", [
+  logDiscord("🛑 Cypherhub Key Revoked Manually", [
     { name: "Key", value: key },
   ]);
 
@@ -148,7 +147,7 @@ app.post("/admin/extend", (req, res) => {
 
   DB[key].expires += ms;
 
-  logDiscord("⏱️ Key Extended", [
+  logDiscord("⏱️ Cypherhub Key Extended", [
     { name: "Key", value: key },
     { name: "Added", value: formatTime(ms) },
   ]);
@@ -161,11 +160,11 @@ app.use("/admin", express.static(path.join(__dirname, "admin")));
 
 // ================== ROOT ==================
 app.get("/", (_, res) => {
-  res.send("Skyvex Key Server running");
+  res.send("Cypherhub Key Server running");
 });
 
 // ================== START ==================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Skyvex Key Server running on port", PORT);
+  console.log("Cypherhub Key Server running on port", PORT);
 });
