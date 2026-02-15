@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
@@ -5,30 +9,36 @@ body {
   color: white;
 }
 
+/* ================= CONTAINER ================= */
+
 .container {
-  padding: 40px;
+  padding: 20px;
   max-width: 1200px;
   margin: auto;
 }
 
 h1 {
   text-align: center;
-  font-size: 32px;
-  margin-bottom: 40px;
+  font-size: 28px;
+  margin-bottom: 30px;
   color: #c084fc;
   text-shadow: 0 0 15px #a855f7;
 }
 
+/* ================= STATS ================= */
+
 .stats {
   display: flex;
-  gap: 20px;
-  margin-bottom: 40px;
+  gap: 15px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
 }
 
 .card {
   flex: 1;
+  min-width: 120px;
   background: rgba(40, 0, 60, 0.6);
-  padding: 25px;
+  padding: 20px;
   border-radius: 15px;
   text-align: center;
   backdrop-filter: blur(10px);
@@ -38,37 +48,46 @@ h1 {
 
 .card h3 {
   margin-bottom: 10px;
+  font-size: 16px;
   color: #d8b4fe;
 }
 
 .card p {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: bold;
 }
+
+/* ================= TABLE ================= */
 
 .table-container {
   background: rgba(40, 0, 60, 0.6);
   border-radius: 15px;
-  padding: 20px;
+  padding: 15px;
   border: 1px solid #7e22ce;
   box-shadow: 0 0 25px rgba(168, 85, 247, 0.3);
+  overflow-x: auto; /* 🔥 FIX MOBILE */
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 600px; /* 🔥 evita romper layout */
 }
 
 th {
-  padding: 15px;
+  padding: 12px;
   background: #6b21a8;
+  font-size: 14px;
 }
 
 td {
-  padding: 12px;
+  padding: 10px;
   border-bottom: 1px solid #3b0764;
   text-align: center;
+  font-size: 13px;
 }
+
+/* ================= STATUS COLORS ================= */
 
 .status-active {
   color: #4ade80;
@@ -85,12 +104,15 @@ td {
   font-weight: bold;
 }
 
+/* ================= BUTTONS ================= */
+
 button {
-  padding: 6px 10px;
+  padding: 6px 8px;
   border-radius: 6px;
   border: none;
   cursor: pointer;
   margin: 2px;
+  font-size: 12px;
   font-weight: bold;
   transition: 0.2s;
 }
@@ -113,4 +135,30 @@ button {
 button:hover {
   transform: scale(1.05);
   opacity: 0.9;
+}
+
+/* ================= MOBILE OPTIMIZATION ================= */
+
+@media (max-width: 768px) {
+
+  h1 {
+    font-size: 22px;
+  }
+
+  .stats {
+    flex-direction: column;
+  }
+
+  .card {
+    width: 100%;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  button {
+    font-size: 11px;
+    padding: 5px 6px;
+  }
 }
