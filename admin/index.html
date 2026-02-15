@@ -2,24 +2,47 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Skyvex Admin Panel</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Skyvex Key Admin</h1>
 
-  <table id="keys">
-    <thead>
-      <tr>
-        <th>Key</th>
-        <th>Remaining</th>
-        <th>Status</th>
-        <th>Uses</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="container">
+    <h1>🟣 Skyvex Admin Panel</h1>
+
+    <div class="stats">
+      <div class="card">
+        <h3>Total Keys</h3>
+        <p id="totalKeys">0</p>
+      </div>
+
+      <div class="card">
+        <h3>Active Keys</h3>
+        <p id="activeKeys">0</p>
+      </div>
+
+      <div class="card">
+        <h3>Revoked</h3>
+        <p id="revokedKeys">0</p>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Remaining</th>
+            <th>Status</th>
+            <th>Uses</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="keysBody"></tbody>
+      </table>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
