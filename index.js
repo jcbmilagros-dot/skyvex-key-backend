@@ -1,5 +1,5 @@
 //==================================================
-// CYPHERHUB | GLOBAL KEY BACKEND (ENHANCED)
+// CYPHERHUB | GLOBAL KEY BACKEND
 //==================================================
 
 import express from "express";
@@ -17,22 +17,12 @@ app.use(express.json());
 // ================== CONFIG ==================
 const KEY_DURATION = 3600 * 1000; // 1 hora
 
-const DISCORD_WEBHOOK =
-  "PON_AQUI_TU_WEBHOOK";
+const DISCORD_WEBHOOK = "PON_AQUI_TU_WEBHOOK";
 
 const ADMIN_TOKEN = "cypherhub_super_admin_CAMBIA_ESTO";
 
 // ================== IN-MEMORY DB ==================
 const DB = {};
-
-// ================== UTILS ==================
-function formatTime(ms) {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  return `${h}h ${m}m ${sec}s`;
-}
 
 // ================== VERIFY ==================
 app.post("/verify", async (req, res) => {
