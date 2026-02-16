@@ -23,7 +23,7 @@ app.use(express.json());
 const KEY_DURATION = 3600 * 1000; // 1 hora
 
 const DISCORD_WEBHOOK =
-  "https://discord.com/api/webhooks/1467582702231228623/kz1P4OuPl7izmORfKT2WGjZ-yJU8c6Q9ts6PdcyqLVN46g0VpjUp0oN74V0cMK6qXIkB";
+  "https://discord.com/api/webhooks/1472726706459639970/brCiOzwTeopW2vfO2bUMS4P97chjP8TC9Oq3QTS7dkHEVdF77uxIuxwwJuHrR2uvdSN5";
 
 const ADMIN_TOKEN = "skyvex_super_admin_CAMBIA_ESTO";
 
@@ -178,11 +178,11 @@ app.use("/admin", express.static(path.join(__dirname, "admin")));
 
 // ================== ROOT ==================
 app.get("/", (_, res) => {
-  res.send("Skyvex Key Server running");
+  res.send("Cypher Key Server running");
 });
 
 // ================== START ==================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Skyvex Key Server running on port", PORT);
+  console.log("Cypher Key Server running on port", PORT);
 });
