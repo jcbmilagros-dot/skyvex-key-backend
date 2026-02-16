@@ -1,7 +1,7 @@
 {
-  "name": "skyvex-key-backend",
+  "name": "cypher-key-backend",
   "version": "1.0.0",
-  "description": "Skyvex Hub global key backend",
+  "description": "Cypher Hub global key backend",
   "main": "index.js",
   "type": "module",
   "scripts": {
